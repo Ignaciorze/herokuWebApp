@@ -1,0 +1,31 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:f="http://java.sun.com/jsf/core"
+                xmlns:h="http://java.sun.com/jsf/html"
+                xmlns:ui="http://java.sun.com/jsf/facelets"
+                xmlns:p="http://primefaces.org/ui"
+                template="/WEB-INF/templates/Login.xhtml">
+
+    <ui:define name="content">
+        <h:body>
+            <p:ajaxStatus onstart="PF('statusDialog').show()" onsuccess="PF('statusDialog').hide()" />
+            <p:dialog widgetVar="statusDialog" modal="true" draggable="false" closable="false" resizable="false" showHeader="false">
+                <p:graphicImage library="mkt" name="images/loading.gif" />
+            </p:dialog>
+            
+            <h:form>
+                <p:messages autoUpdate="true" />
+                <h:panelGrid columns="2">
+                    <p:outputLabel for="txtUser" value="user"/>
+                    <p:inputText id="txtUser" value="#{userController.user.userName}" required="true"/>
+
+                    <p:outputLabel for="txtPass" value="organization"/>
+                    <p:inputText id="txtPass" value="#{userController.user.organization}" required="true"/>
+                    <p:column />
+                    <p:commandButton icon="ui-icon-key" value="Login" action="#{userController.Login()}"/>
+                </h:panelGrid>
+            </h:form>
+        </h:body>
+
+
+    </ui:define>
+</ui:composition>

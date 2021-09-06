@@ -1,51 +1,66 @@
+heroku create pocherokudev
+https://pocherokudev.herokuapp.com/ 
+https://git.heroku.com/pocherokudev.git
 
-* Typical commands heroku
-	heroku login //Ves primero al directorio donde has instalado Heroku
-	heroku create example
+https://git.heroku.com/pocherokuuat.git
 
-	heroku open // Te abre la aplicación
+heroku login
+heroku run bash
+heroku logs --tail --app worker3
 
-	heroku addons:create heroku-postgresql:hobby-dev
+Create a neww app in Heroku with its remote
+	heroku create --remote staging myApp //Assign the app to a particular remote
+	git remote rename heroku heroku-staging //Rename a remote
+	git config heroku.remote staging //The herokucli commands will refer to this app from now on
+	
+	heroku config:set PROFILE ="-PherokuDev"
 
+Git commands:
+	To see all remotes repositories
+	git remote -v
+	git push heroku dev:master //push to a remote in heroku the local dev to the remote master
+	git push heroku master //if what you want to send is master
+	
+	
+How to Startt Collaborating in this project:
 
-	POSTGRESS
-		user: postgres	
-		password: admin
-
-
-	heroku config:set MAVEN_CUSTOM_GOALS="clean package -PherokuDev"
-	
-	heroku run bash
-
-	heroku buildpacks:set https://github.com/ignramgar/tomeeBuildPack.git  -a heropoc
-	
-	heroku ps:restart
-	
-	Para tener múltiples aplicaciones:
-		heroku create --remote staging herokuamduat
-		https://herokuamduat.herokuapp.com/ | https://git.heroku.com/herokuamduat.git
-	
-	
-	
-	
-	
-* Typical commands git
-
-	git push heroku master
-	
-	heroku git:remote -a appName
-	
-	https://herokuamd.herokuapp.com/
-	
-* APPS:
-
-	El código de la aplicación de la poc de Heroku está en:
-		https://rndwww.nce.amadeus.net/git/scm/herpoc/herokupoc1.git
-	
-	El build pack de tomee está en:
-		GitHub de mi cuenta https://github.com/ignramgar/tomeeBuildPack.git
+	Clone the project from github. The name of the repository is herokuWebApp
+		>git clone https://github.com/herokupoc/herokuWebApp.git
+		>git branch -a
+		>git checkout --track origin/uat
+		>git checkout --track origin/dev
 		
-* Admin database
-	Use pgadmin to admin postgress
-	La admin de postgres es pgadmin
+	Create a remote to herokuu 
+		>heroku git:remote -a pocherokudev
 		
+	Verify thatt you have a remote branch in your local git: 
+		>git remote -v
+	
+	Rename your remote to have more clarity: 
+		>git remote rename heroku heroku-[dev|uat|prod]
+	ss
+	Do some change in order to test that everything works properly(Example modify Menu.xhtml) Push to heroku: 
+		>git push //To push to github dev remote, the baseline that share our work
+		>git push heroku dev:master
+	
+	
+How to makee a change to the project:
+		>git checkout dev
+		>we do all our changes
+		>we merge new commits in remote github dev to our development
+		>git pull
+		>git add .
+		>git commit -m "our message" .
+		>git push
+		>git push heroku-dev dev:master
+		
+Jobs:
+	Create the app worker3
+	heroku create worker3dev --no-remote
+	heroku deploy:jar target\am-heroku-job3-jar-with-dependencies.jar --app worker3dev
+	
+	Create the app worker2
+	heroku create worker2dev --no-remote
+	heroku deploy:jar target\am-heroku-job2-jar-with-dependencies.jar --app worker2dev
+	
+	 
