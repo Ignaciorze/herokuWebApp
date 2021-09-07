@@ -4,10 +4,10 @@ CREATE OR REPLACE FUNCTION public.checkdataintegrity(input_filecontanerid numeri
 AS $function$
 declare
     cnt_contact INTEGER;
-       cnt_rec INTEGER;
-       rec record ;
+    cnt_rec INTEGER;
+    rec record ;
     err_msg_local varchar := ' ';
-       validate_local varchar ;
+    validate_local varchar ;
     err_type_local integer;
     record_err_qty_local integer:= 0;
     error_type_acum integer := 0;

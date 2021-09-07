@@ -5,19 +5,19 @@
  */
 package com.herokuPOC.manageBeans.jpaBeans;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.ejb.EJB;
-import javax.faces.application.FacesMessage;
-import javax.faces.context.FacesContext;
-import org.primefaces.event.FileUploadEvent;
-import org.primefaces.model.UploadedFile;
-import javax.faces.bean.ManagedBean;
-import javax.faces.bean.SessionScoped;
 import com.herokuPOC.entity.FileContainer;
 import com.herokuPOC.entity.User;
 import com.herokuPOC.services.ContainerManager;
-import com.herokuPOC.services.StorageManager;
+import com.herokuPOC.services.storageManagerPackage.StorageManager;
+import org.primefaces.context.RequestContext;
+import org.primefaces.event.FileUploadEvent;
+import org.primefaces.model.UploadedFile;
+
+import javax.ejb.EJB;
+import javax.faces.application.FacesMessage;
+import javax.faces.bean.ManagedBean;
+import javax.faces.bean.SessionScoped;
+import javax.faces.context.FacesContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,25 +27,23 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-import org.primefaces.context.RequestContext;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- *
  * @author evangelistap
  */
 @ManagedBean(name = "FileUploadBean")
 @SessionScoped
 public class FileUploadBean {
 
+    private final Timestamp timeStamp = Timestamp.valueOf(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime()));
+    FileContainer fileContainertoDb = new FileContainer();
     //class variables
     private UploadedFile file;
-
     @EJB
     private ContainerManager fileuploadFacade;
-
-    private final Timestamp timeStamp = Timestamp.valueOf(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().getTime()));
     private List<FileContainer> ListFromDb = new ArrayList<FileContainer>();
-    FileContainer fileContainertoDb = new FileContainer();
     private StorageManager aWSStorageFacade;
 
     public UploadedFile getFile() {
@@ -66,9 +64,9 @@ public class FileUploadBean {
         User us = (User) FacesContext.getCurrentInstance().getExternalContext().getSessionMap().get("user");
 
         int fileRecordQty = fileLines.split("\r\n|\r|\n").length - 1;
-        
+
         fileContainertoDb = new FileContainer();
-        
+
         fileContainertoDb.setLoad_status("PENDING");
         fileContainertoDb.setName(file.getFileName());
         fileContainertoDb.setUpload_by(us.getUserName());
@@ -112,7 +110,7 @@ public class FileUploadBean {
                 aWSStorageFacade.upload(e);
                 FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO, "Info Message", "File Uploaded successfuly!! You will receive an email with feedback!"));
             }
-            
+
         } catch (Exception ex) {
             RequestContext.getCurrentInstance().showMessageInDialog(new FacesMessage(FacesMessage.SEVERITY_ERROR, "Error Message", "Error Uploading File!"));
             Logger.getLogger(FileUploadBean.class.getName()).log(Level.SEVERE, null, ex);
@@ -140,7 +138,6 @@ public class FileUploadBean {
         return result.toString("UTF-8");
 
     }
-    
-    
-    
+
+
 }

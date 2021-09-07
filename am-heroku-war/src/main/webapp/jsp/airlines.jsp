@@ -29,18 +29,12 @@
 							$("#button1").html(respuesta);
 						},
 						error: function(results) {
-					        console.log("No se ha podido obtener la información: " + JSON.stringify(results));
+					        console.log("No se ha podido obtener la informaciï¿½n: " + JSON.stringify(results));
 					    }
 					});
 			});
-			
-			console.log("Ya está disponible");
-			
-			
-			
+			console.log("Ya estï¿½ disponible");
 	    });
-		
-		
 
 	</script>
 	

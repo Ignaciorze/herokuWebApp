@@ -8,7 +8,7 @@ import javax.persistence.ParameterMode;
 import javax.persistence.PersistenceContext;
 import javax.persistence.StoredProcedureQuery;
 
-public class ContactDataIntegrity {
+public class DataIntegrityContact implements DataIntegrityImp {
 
     @PersistenceContext(unitName = "com.amadeus.websolutions_herokuPOC")
     private EntityManager em;
@@ -16,6 +16,7 @@ public class ContactDataIntegrity {
     @EJB
     private MailManager mailManager;
 
+    @Override
     public boolean checkDataIntegrity(int fileContainerId) {
         boolean bReturn = true;
         try {

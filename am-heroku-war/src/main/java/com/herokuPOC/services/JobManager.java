@@ -5,72 +5,86 @@
  */
 package com.herokuPOC.services;
 
+import com.herokuPOC.common.CONTAINER_TYPE;
 import com.herokuPOC.entity.FileContainer;
+import com.herokuPOC.services.checkDataIntegrities.DataIntegrityContact;
+import com.herokuPOC.services.storageManagerPackage.StorageManager;
+
+import javax.ejb.EJB;
+import javax.ejb.Stateless;
+import javax.persistence.EntityManager;
+import javax.persistence.ParameterMode;
+import javax.persistence.PersistenceContext;
+import javax.persistence.StoredProcedureQuery;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ejb.EJB;
-import javax.ejb.Stateless;
-import javax.faces.application.FacesMessage;
-import javax.faces.context.FacesContext;
-import javax.persistence.EntityManager;
-import javax.persistence.ParameterMode;
-import javax.persistence.PersistenceContext;
-import javax.persistence.StoredProcedureQuery;
 
 
 @Stateless
 public class JobManager {
-    private List<FileContainer> listFromDb ;
-    private boolean success;    
+    private List<FileContainer> listFromDb;
+    private boolean success;
 
-    
-    
+
     @PersistenceContext(unitName = "com.amadeus.websolutions_herokuPOC")
     private EntityManager em;
-    
+
     @EJB
-    private StorageManager storageManager; 
+    private StorageManager storageManager;
+
     @EJB
     private ContainerManager fileUploadFacade;
     @EJB
-    private MailManager mailManager; 
+    private MailManager mailManager;
+    @EJB
+    private DataIntegrityContact checkDataIntegrity;
 
- 
-    public void executeJob1(){ 
-        
-        
+
+    public void executeJob1() {
+
+
         //String body1 = "The file " + "Test" +" was validated and can be checked for errors in the records.\n";
-         //                   mailManager.sendMail2User("general@amadeus.com", "Amadeus POC - File validated: " + "Test", body1);
-        
+        //                   mailManager.sendMail2User("general@amadeus.com", "Amadeus POC - File validated: " + "Test", body1);
+
         listFromDb = new ArrayList<>();
-        
+
         // get all the FileContainer that need to be brought from AWS Storage and inserted into the database
         listFromDb = fileUploadFacade.findAllUploadedToDb();
-        if (listFromDb.size() >= 0){
+        if (listFromDb.size() >= 0) {
             // for each file do
             listFromDb.forEach((FileContainer fileContainer) -> {
                 // Get the folder with the date when it was uploaded
                 SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
-                String date = format.format( fileContainer.getUpload_date()   );
+                String date = format.format(fileContainer.getUpload_date());
                 // get the filename from the database
-                String fileName = fileContainer.getName();                
+                String fileName = fileContainer.getName();
                 try {
                     // call the class that reads all the records from the Amazon S3 stored file and stores them onto the database
-                    success = storageManager.getRecordsFromFile(date,fileName,fileContainer);
+                    boolean integrityDone = false;
+                    CONTAINER_TYPE type = getTypes(fileContainer.getHeader());//get the container type
+                    success = storageManager.getRecordsFromFile(date, fileName, fileContainer, type);
+
                     if (success) {
                         // calls the Stored procedure to validate the data integrity
-                        boolean integrityDone = checkDataIntegrity(fileContainer.getId());
-                        // update the Container File Status to LOADED 
+                        if (type == CONTAINER_TYPE.CONTACT) {
+                            /**JUST CHECK INTEGRITY FOR THE CONTACT CONTAINER**/
+                            integrityDone = checkDataIntegrity.checkDataIntegrity(fileContainer.getId());
+                        }
+
+                        /*if (type == CONTAINER_TYPE.ACCOUNT) {
+                            //integrityDone = checkDataIntegrity.checkDataIntegrity(fileContainer.getId());
+                        }*/
+
+
+                        // update the Container File Status to LOADED
                         boolean update = fileUploadFacade.update(fileContainer);
-                        if(integrityDone && update) {
+                        if (integrityDone && update) {
                             // send email to the user saying that the file is vailable for searching in the webapp
-                            String body = "The file " + fileName +" was validated and can be checked for errors in the records.\n";
+                            String body = "The file " + fileName + " was validated and can be checked for errors in the records.\n";
                             //mailManager.sendMail2User("general@amadeus.com", "Amadeus POC - File validated: " + fileName, body);
                         }
                     }
@@ -79,59 +93,39 @@ public class JobManager {
                     // send email to central team
                     String body = "Error on process:" + "JOB3\n";
                     body = body + ex.getLocalizedMessage();
-                    mailManager.sendMail2CentralTeam("herokuwebapp@amadeus.com","Error on heroku POC WebApp",body);
+                    mailManager.sendMail2CentralTeam("herokuwebapp@amadeus.com", "Error on heroku POC WebApp", body);
                 }
                 if (success) {
                     // call the PostGreSQL function to validate
-                    boolean update = fileUploadFacade.update(fileContainer);                    
+                    boolean update = fileUploadFacade.update(fileContainer);
                 }
             });
-        }         
+        }
         System.out.println("ENDED JOB 2");
     }
-    
-    public boolean checkDataIntegrity(int fileContainerId){
-        boolean bReturn = true;
-        try{
-            StoredProcedureQuery storedProcedure = em.createStoredProcedureQuery("public.checkdataintegrity");
-         // set parameters
-           storedProcedure.registerStoredProcedureParameter(1, Integer.class, ParameterMode.IN);
-           storedProcedure.registerStoredProcedureParameter(2, Boolean.class, ParameterMode.OUT);
-           storedProcedure.setParameter(1, fileContainerId);
-           Boolean out = (Boolean)storedProcedure.getOutputParameterValue(2);
-           
-           System.out.println("out : " + out.toString());                     
- 
-       } catch (IllegalArgumentException | IllegalStateException | java.lang.ClassCastException iae){
-           // send email to central team
-           String body = "Error on process: checkdataintegrity " + "JOB3" + "\n";
-           body = body + iae.getLocalizedMessage();
-           mailManager.sendMail2CentralTeam("herokuwebapp@amadeus.com","Error on heroku POC WebApp",body);
-           bReturn = false;           
-       }
-        return bReturn;
-    }
-    
-    public void executeJob2(){ 
-       try{                    
-            StoredProcedureQuery storedProcedure = em.createStoredProcedureQuery("public.integratedata_sf");
-         // set parameters
-           storedProcedure.registerStoredProcedureParameter(1, Boolean.class, ParameterMode.OUT);
- 
-           Boolean out = (Boolean)storedProcedure.getOutputParameterValue(1);
 
-           System.out.println("integratedata_sf output : " + out.toString());                     
-          
+    public void executeJob2() {
+        try {
+
+            /***
+             * JUST FOR TABLE RECORD -> CONCTAC CONTAINER, WHIT INTEGRATE_DATA_SF INTEGRATED ALL CONTAINERS
+             * StoredProcedureQuery storedProcedure = em.createStoredProcedureQuery("public.INTEGRATE_DATA_SF");
+             */
+
+            StoredProcedureQuery storedProcedure = em.createStoredProcedureQuery("public.integratedata_sf");
+            storedProcedure.registerStoredProcedureParameter(1, Boolean.class, ParameterMode.OUT);
+            Boolean out = (Boolean) storedProcedure.getOutputParameterValue(1);
+            System.out.println("integratedata_sf output : " + out.toString());
             String body = "The Container files have now been processed! You can go and check the Status of the records on the Web App!";
-            mailManager.sendMail2User("herokuwebapp@amadeus.com","WebApp - Containers validated",body);
-           
-       } catch (IllegalArgumentException | IllegalStateException iae){
-           // send email to central team
-           String body = "Error on process: integratedata_sf " + "JOB3" + "\n";
-           body = body + iae.getLocalizedMessage();
-           mailManager.sendMail2CentralTeam("herokuwebapp@amadeus.com","Error on heroku POC WebApp",body);
-          
-       }       
+            mailManager.sendMail2User("herokuwebapp@amadeus.com", "WebApp - Containers validated", body);
+
+        } catch (IllegalArgumentException | IllegalStateException iae) {
+            // send email to central team
+            String body = "Error on process: integratedata_sf " + "JOB3" + "\n";
+            body = body + iae.getLocalizedMessage();
+            mailManager.sendMail2CentralTeam("herokuwebapp@amadeus.com", "Error on heroku POC WebApp", body);
+
+        }
     }
     /*
     public void sendEmail(String from, String to, String subject,String body){
@@ -169,4 +163,16 @@ public class JobManager {
         return out;
     }
 */
+
+
+    private CONTAINER_TYPE getTypes(String header) {
+        if (header.startsWith("CO")) {
+            return CONTAINER_TYPE.CONTACT;
+        }
+        if (header.startsWith("AC")) {
+            return CONTAINER_TYPE.ACCOUNT;
+        }
+        return null;
+    }
+
 }

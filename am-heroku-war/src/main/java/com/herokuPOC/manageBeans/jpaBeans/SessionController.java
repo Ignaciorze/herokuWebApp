@@ -6,39 +6,37 @@
 package com.herokuPOC.manageBeans.jpaBeans;
 
 import com.herokuPOC.entity.User;
-import java.io.Serializable;
+
 import javax.faces.bean.ViewScoped;
 import javax.faces.context.FacesContext;
 import javax.inject.Named;
+import java.io.Serializable;
 
 /**
- *
  * @author evangelistap
  */
 @Named
 @ViewScoped
 
-public class SessionController implements Serializable{
-    
-    public void checkSession(){
+public class SessionController implements Serializable {
+
+    public void checkSession() {
         try {
             User us = (User) FacesContext.getCurrentInstance().getExternalContext().getSessionMap().get("user");
-            
-            if(us == null){
+
+            if (us == null) {
                 FacesContext.getCurrentInstance().getExternalContext().redirect("/login.xhtml");
-            
-            }            
+
+            }
         } catch (Exception e) {
         }
-        
-        
-        }
-    
-    public void closeSession(){
-        FacesContext.getCurrentInstance().getExternalContext().invalidateSession();    
     }
-    
-    
+
+    public void closeSession() {
+        FacesContext.getCurrentInstance().getExternalContext().invalidateSession();
+    }
+
+
 }
     
 

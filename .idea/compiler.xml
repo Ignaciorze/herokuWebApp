@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="am-heroku-job2" />
+        <module name="am-heroku-war" />
+        <module name="am-heroku-job3" />
+      </profile>
+    </annotationProcessing>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="am-heroku-job2" options="-Xlint -J-Duser.language=en_us" />
+      <module name="am-heroku-job3" options="-Xlint -J-Duser.language=en_us" />
+      <module name="am-heroku-war" options="-Xlint -J-Duser.language=en_us" />
+      <module name="herokuPOC" options="" />
+    </option>
+  </component>
+</project>
