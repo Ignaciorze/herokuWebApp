@@ -7,7 +7,6 @@ package com.herokuPOC.services;
 
 import com.herokuPOC.common.CONTAINER_TYPE;
 import com.herokuPOC.entity.FileContainer;
-import com.herokuPOC.services.checkDataIntegrities.DataIntegrityContact;
 import com.herokuPOC.services.storageManagerPackage.StorageManager;
 
 import javax.ejb.EJB;
@@ -22,7 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 
 @Stateless
 public class JobManager {
@@ -40,68 +38,102 @@ public class JobManager {
     private ContainerManager fileUploadFacade;
     @EJB
     private MailManager mailManager;
-    @EJB
-    private DataIntegrityContact checkDataIntegrity;
 
 
     public void executeJob1() {
 
-
-        //String body1 = "The file " + "Test" +" was validated and can be checked for errors in the records.\n";
-        //                   mailManager.sendMail2User("general@amadeus.com", "Amadeus POC - File validated: " + "Test", body1);
-
         listFromDb = new ArrayList<>();
 
-        // get all the FileContainer that need to be brought from AWS Storage and inserted into the database
         listFromDb = fileUploadFacade.findAllUploadedToDb();
         if (listFromDb.size() >= 0) {
-            // for each file do
             listFromDb.forEach((FileContainer fileContainer) -> {
-                // Get the folder with the date when it was uploaded
                 SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
                 String date = format.format(fileContainer.getUpload_date());
-                // get the filename from the database
                 String fileName = fileContainer.getName();
                 try {
-                    // call the class that reads all the records from the Amazon S3 stored file and stores them onto the database
                     boolean integrityDone = false;
                     CONTAINER_TYPE type = getTypes(fileContainer.getHeader());//get the container type
                     success = storageManager.getRecordsFromFile(date, fileName, fileContainer, type);
 
                     if (success) {
-                        // calls the Stored procedure to validate the data integrity
                         if (type == CONTAINER_TYPE.CONTACT) {
                             /**JUST CHECK INTEGRITY FOR THE CONTACT CONTAINER**/
-                            integrityDone = checkDataIntegrity.checkDataIntegrity(fileContainer.getId());
+                            integrityDone = this.checkDataIntegrity("public.checkdataintegrity", fileContainer.getId());//INTEGRATE_CONTACT_DATA
                         }
 
                         /*if (type == CONTAINER_TYPE.ACCOUNT) {
-                            //integrityDone = checkDataIntegrity.checkDataIntegrity(fileContainer.getId());
-                        }*/
+                            integrityDone = this.checkDataIntegrity("public.INTEGRATE_ACCOUNT_DATA", fileContainer.getId());
+                        }
+                        if (type == CONTAINER_TYPE.ACTIVITY) {
+                        integrityDone = this.checkDataIntegrity("public.INTEGRATE_ACTIVITY_DATA", fileContainer.getId());
+                        }
+                        if (type == CONTAINER_TYPE.CONTRACT) {
+                        integrityDone = this.checkDataIntegrity("public.INTEGRATE_CONTRACT_DATA", fileContainer.getId());
+                        }
+                        if (type == CONTAINER_TYPE.EXCHANGE_RATES) {
+                        integrityDone = this.checkDataIntegrity("public.INTEGRATE_ER_DATA", fileContainer.getId());
+                        }
+                        if (type == CONTAINER_TYPE.GDS_IATA) {
+                        integrityDone = this.checkDataIntegrity("public.INTEGRATE_GDS_IATA_DATA", fileContainer.getId());
+                        }
+                        if (type == CONTAINER_TYPE.INSTALLED_PRODUCTS) {
+                        integrityDone = this.checkDataIntegrity("public.INTEGRATE_IP_DATA", fileContainer.getId());
+                        }
+                        if (type == CONTAINER_TYPE.OFFICE_ID) {
+                        integrityDone = this.checkDataIntegrity("public.INTEGRATE_OI_DATA", fileContainer.getId());
+                        }
+                        if (type == CONTAINER_TYPE.OPPORTUNITY) {
+                        integrityDone = this.checkDataIntegrity("public.INTEGRATE_OPPORTUNITY_DATA", fileContainer.getId());
+                        }
+                        if (type == CONTAINER_TYPE.SOLD_PRODUCT) {
+                        integrityDone = this.checkDataIntegrity("public.INTEGRATE_SP_DATA", fileContainer.getId());
+                        }
+                        if (type == CONTAINER_TYPE.TECNICAL_INFO) {
+                        integrityDone = this.checkDataIntegrity("public.INTEGRATE_TI_DATA", fileContainer.getId());
+                        }
+                        if (type == CONTAINER_TYPE.EMPTY) {
+                            //IF THERE IS NOT HEADER
+                        }
+                        */
 
-
-                        // update the Container File Status to LOADED
                         boolean update = fileUploadFacade.update(fileContainer);
                         if (integrityDone && update) {
-                            // send email to the user saying that the file is vailable for searching in the webapp
                             String body = "The file " + fileName + " was validated and can be checked for errors in the records.\n";
-                            //mailManager.sendMail2User("general@amadeus.com", "Amadeus POC - File validated: " + fileName, body);
                         }
                     }
                 } catch (IOException ex) {
                     Logger.getLogger(StorageManager.class.getName()).log(Level.SEVERE, null, ex);
-                    // send email to central team
                     String body = "Error on process:" + "JOB3\n";
                     body = body + ex.getLocalizedMessage();
                     mailManager.sendMail2CentralTeam("herokuwebapp@amadeus.com", "Error on heroku POC WebApp", body);
                 }
-                if (success) {
-                    // call the PostGreSQL function to validate
+                if (success) {//IS THIS NECESARY??? I DONT THINK SO
                     boolean update = fileUploadFacade.update(fileContainer);
                 }
             });
         }
-        System.out.println("ENDED JOB 2");
+        System.out.println("ENDED JOB 1");
+    }
+
+    public boolean checkDataIntegrity(String plIntegrityData, int fileContainerId) {
+        boolean bReturn = true;
+        try {
+            StoredProcedureQuery storedProcedure = em.createStoredProcedureQuery(plIntegrityData);//"public.CHECK_CONTACT_DATA_INTEGRITY"
+            storedProcedure.registerStoredProcedureParameter(1, Integer.class, ParameterMode.IN);
+            storedProcedure.registerStoredProcedureParameter(2, Boolean.class, ParameterMode.OUT);
+            storedProcedure.setParameter(1, fileContainerId);
+            Boolean out = (Boolean) storedProcedure.getOutputParameterValue(2);
+
+            System.out.println("out : " + out.toString());
+
+        } catch (IllegalArgumentException | IllegalStateException | java.lang.ClassCastException iae) {
+            // send email to central team
+            String body = "Error on process: checkdataintegrity " + "JOB3" + "\n";
+            body = body + iae.getLocalizedMessage();
+            mailManager.sendMail2CentralTeam("herokuwebapp@amadeus.com", "Error on heroku POC WebApp", body);
+            bReturn = false;
+        }
+        return bReturn;
     }
 
     public void executeJob2() {
@@ -126,53 +158,44 @@ public class JobManager {
             mailManager.sendMail2CentralTeam("herokuwebapp@amadeus.com", "Error on heroku POC WebApp", body);
 
         }
+        System.out.println("ENDED JOB 2");
     }
-    /*
-    public void sendEmail(String from, String to, String subject,String body){
-        //em.getTransaction().begin();
-        MailStore mailStore = new MailStore();
-        mailStore.setSendTo(to);
-        mailStore.setSentFrom(from);
-        mailStore.setSubject(subject);
-        mailStore.setBody(body);
-        em.persist(mailStore);
-        //em.getTransaction().commit();
-    }
-    
-    public String getCentralTeamEmail(){
-        String out = null;
-        try{
-            StoredProcedureQuery storedProcedure = em.createStoredProcedureQuery("util.get_t_util_header_lookup");
-         // set parameters
-           storedProcedure.registerStoredProcedureParameter(1, String.class, ParameterMode.IN);
-		   storedProcedure.registerStoredProcedureParameter(2, String.class, ParameterMode.IN);
-           storedProcedure.registerStoredProcedureParameter(3, String.class, ParameterMode.OUT);
-           storedProcedure.setParameter( 1,"CENTRAL_TEAM_EMAIL");
-		   storedProcedure.setParameter( 2,"online");
-
-           out = (String)storedProcedure.getOutputParameterValue(3);
-
-           System.out.println("out : " + out);
-           
-           
-           //User us = (User)FacesContext.getCurrentInstance().getExternalContext().getSessionMap().get("user");
-           
-       } catch (IllegalArgumentException | IllegalStateException iae){
-          // send email to central teamsendEmail("inacio.ferreira@cgi.com","inacio.ferreira@cgi.com","subject","body");
-       }
-        return out;
-    }
-*/
-
 
     private CONTAINER_TYPE getTypes(String header) {
-        if (header.startsWith("CO")) {
-            return CONTAINER_TYPE.CONTACT;
-        }
         if (header.startsWith("AC")) {
             return CONTAINER_TYPE.ACCOUNT;
         }
-        return null;
+        if (header.startsWith("AV")) {
+            return CONTAINER_TYPE.ACTIVITY;
+        }
+        if (header.startsWith("CO")) {
+            return CONTAINER_TYPE.CONTACT;
+        }
+        if (header.startsWith("CT")) {
+            return CONTAINER_TYPE.CONTRACT;
+        }
+        if (header.startsWith("EX")) {
+            return CONTAINER_TYPE.EXCHANGE_RATES;
+        }
+        if (header.startsWith("GO")) {
+            return CONTAINER_TYPE.GDS_IATA;
+        }
+        if (header.startsWith("IP")) {
+            return CONTAINER_TYPE.INSTALLED_PRODUCTS;
+        }
+        if (header.startsWith("OI")) {
+            return CONTAINER_TYPE.OFFICE_ID;
+        }
+        if (header.startsWith("OP")) {
+            return CONTAINER_TYPE.OPPORTUNITY;
+        }
+        if (header.startsWith("SP")) {
+            return CONTAINER_TYPE.SOLD_PRODUCT;
+        }
+        if (header.startsWith("TI")) {
+            return CONTAINER_TYPE.TECNICAL_INFO;
+        }
+        return CONTAINER_TYPE.EMPTY;
     }
 
 }
