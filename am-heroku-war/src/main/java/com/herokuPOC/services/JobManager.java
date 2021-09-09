@@ -40,7 +40,7 @@ public class JobManager {
     private MailManager mailManager;
 
 
-    public void executeJob1() {
+    public void runDataValidation() {
 
         listFromDb = new ArrayList<>();
 
@@ -118,7 +118,7 @@ public class JobManager {
     public boolean checkDataIntegrity(String plIntegrityData, int fileContainerId) {
         boolean bReturn = true;
         try {
-            StoredProcedureQuery storedProcedure = em.createStoredProcedureQuery(plIntegrityData);//"public.CHECK_CONTACT_DATA_INTEGRITY"
+            StoredProcedureQuery storedProcedure = em.createStoredProcedureQuery(plIntegrityData);
             storedProcedure.registerStoredProcedureParameter(1, Integer.class, ParameterMode.IN);
             storedProcedure.registerStoredProcedureParameter(2, Boolean.class, ParameterMode.OUT);
             storedProcedure.setParameter(1, fileContainerId);
@@ -136,7 +136,7 @@ public class JobManager {
         return bReturn;
     }
 
-    public void executeJob2() {
+    public void updateSalesforce() {
         try {
 
             /***
