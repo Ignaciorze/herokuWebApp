@@ -46,7 +46,8 @@ public class JobManager {
 
         listFromDb = fileUploadFacade.findAllUploadedToDb();
         if (listFromDb.size() >= 0) {
-            listFromDb.forEach((FileContainer fileContainer) -> {
+            for (FileContainer fileContainer : listFromDb) {
+                //listFromDb.forEach((FileContainer fileContainer) -> {
                 SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd");
                 String date = format.format(fileContainer.getUpload_date());
                 String fileName = fileContainer.getName();
@@ -110,7 +111,8 @@ public class JobManager {
                 if (success) {//IS THIS NECESARY??? I DONT THINK SO
                     boolean update = fileUploadFacade.update(fileContainer);
                 }
-            });
+            }
+            ;
         }
         System.out.println("ENDED JOB 2");
     }
