@@ -112,7 +112,7 @@ public class JobManager {
                 }
             });
         }
-        System.out.println("ENDED JOB 1");
+        System.out.println("ENDED JOB 2");
     }
 
     public boolean checkDataIntegrity(String plIntegrityData, int fileContainerId) {
